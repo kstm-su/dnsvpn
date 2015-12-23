@@ -3,26 +3,40 @@ import threading
 import os
 import time
 import binascii
+import base64
 from scapy.all import *
 
-tap = os.open('/dev/tun1', os.O_RDWR)
+tun = os.open('/dev/tun1', os.O_RDWR)
 subprocess.check_call('sudo ifconfig tun1 10.10.0.1 10.10.0.1 netmask 255.255.255.0 up', shell=True)
 
-class TapReader(threading.Thread):
+class TunReader(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self) 
 
     def run(self):
-        global tap
+        global tun
         while (True):
-           data = os.read(tap, 1500)
-	   ls(IP(data))
-           print binascii.hexlify(data)
+           data = os.read(tun, 1500)
+	   data = IP(data)
+	   print data.id
+	   data_base64 =  base64.urlsafe_b64encode(str(data))
+	   print data_base64
+	   print 'id_length : ' + str(data.id.bit_length() // 8)
+	   print 'base64_length : ' + str(len(data_base64))
 
-# os.write(tap, m)
-TapThread = TapReader()
-TapThread.daemon = True
-TapThread.start()
+class TunWriter(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+    def run(self):
+        global tun
+        while(True):
+            m = base64.urlsafe_b64decode(message)
+            os.write(tun, m)
+
+TunRXThread = TunReader()
+TunRXThread.daemon = True
+TunRXThread.start()
 
 while True:
     time.sleep(1)
