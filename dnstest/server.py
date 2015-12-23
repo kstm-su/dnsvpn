@@ -42,7 +42,7 @@ class TYPE:
 SERVER_ADDR = '27.96.45.147'
 
 server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-server.bind(('', 53))
+server.bind((SERVER_ADDR, 53))
 try:
     while (True):
         req, addr = server.recvfrom(1024)
