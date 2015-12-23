@@ -18,6 +18,7 @@ class TunReader(threading.Thread):
         while (True):
            data = os.read(tun, 1500)
 	   data = IP(data)
+	   ls(data)
 	   print data.id
 	   data_base64 =  base64.urlsafe_b64encode(str(data))
 	   print data_base64
