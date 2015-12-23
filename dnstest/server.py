@@ -1,3 +1,5 @@
+# coding: UTF-8
+
 import socket
 #from binascii import *
 from scapy.all import *
@@ -37,7 +39,7 @@ class TYPE:
     DLV = 32769
 
 # NSレコードで返すIPアドレス
-SERVER_ADDR = '27.120.111.8'
+SERVER_ADDR = '27.96.45.147'
 
 server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server.bind(('', 53))
