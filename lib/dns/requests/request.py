@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from fields import *
 
 class Request():
     format = None
@@ -23,4 +24,4 @@ class TXRequest(Request):
 
 class RXRequest(Request):
     format = (RequestFieldCount, RequestFieldID, RequestFiledHostname)
-    separator '.'
+    separator = '.'
