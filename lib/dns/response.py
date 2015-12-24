@@ -23,11 +23,20 @@ class RequestFieldId(RequestField):
     def __str__(self):
         return '%02x.%02x' % ((self.value >> 8) & 0xff, self.value & 0xff)
 
+class RequestFieldSequence(RequestField):
+    name = 'sequence'
+    def __str__(self):
+	return '%02x.%02x' % ((self.value >> 8) & 0xff, self.value & 0xff)
+
 class RequestFieldCount(RequestField):
     name = 'count'
     default = 0
     def __str__(self):
         return '%02x.%02x' % ((self.value >> 8) & 0xff, self.value & 0xff)
+
+class RequestFieldData(RequestField):
+    name = 'data'
+    default = ''
 
 class Request():
     format = None
@@ -42,9 +51,17 @@ class Request():
             res.append(str(x))
         return self.separator.join(res)
 
-class TXRequest(Request):
+class TXInitRequest(Request):
     format = (RequestFieldCount, RequestFieldId, RequestFieldHostName)
     separator = '.'
+
+class TXRequest(Request):
+    format = (RequestFieldData, RequestFieldSequence, RequestFieldId, RequestFileHostname)
+    separator = '.'
+
+class RXRequest(Request):
+    format = (RequestFieldCount, RequestFieldID, RequestFiledHostname)
+    separator '.'
 
 tx = TXRequest(id = 1234, hostname = '4no.jp', count = 9876)
 print str(tx)
