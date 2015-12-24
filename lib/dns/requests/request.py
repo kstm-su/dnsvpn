@@ -2,11 +2,17 @@
 
 class Request():
     format = None
-    separator = ''
+    separator = '.'
     def __init__(self, **kwargs):
         self.data = []
         for x in self.format:
-            self.data.append(x(kwargs[x.name]))
+            if isinstance(x, str):
+                self.data.append(x)
+                continue
+            if x.name in kwargs:
+                self.data.append(x(kwargs[x.name]))
+            else:
+                self.data.append(x())
     def __str__(self):
         res = []
         for x in self.data:
