@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from fields import *
 
 class Request():
     format = None
@@ -13,15 +12,3 @@ class Request():
         for x in self.data:
             res.append(str(x))
         return self.separator.join(res)
-
-class TXInitRequest(Request):
-    format = (RequestFieldCount, RequestFieldId, RequestFieldHostName)
-    separator = '.'
-
-class TXRequest(Request):
-    format = (RequestFieldData, RequestFieldSequence, RequestFieldId, RequestFileHostname)
-    separator = '.'
-
-class RXRequest(Request):
-    format = (RequestFieldCount, RequestFieldID, RequestFiledHostname)
-    separator = '.'
