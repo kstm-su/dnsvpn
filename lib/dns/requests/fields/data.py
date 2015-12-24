@@ -3,4 +3,3 @@ from field import RequestField
 
 class Data(RequestField):
     name = 'data'
-    default = ''
