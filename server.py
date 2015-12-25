@@ -48,7 +48,7 @@ class DNSServer(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind(settings.SERVER_ADDR, 53)
+        self.sock.bind((settings.SERVER_ADDR, 53))
     def run(self):
         global queue
         while (True):
