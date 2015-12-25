@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from field import RequestField
 
+BUFFER_EMPTY = 0
+RETRANSMISSION = 1
+
 class ErrorNo(RequestField):
     name = 'error'
     default = 0
