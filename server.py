@@ -2,12 +2,50 @@
 
 import threading
 import socket
+import subprocess
+import os
+import struct
+import Queue
+from fcntl import ioctl
 from scapy.all import *
-from base64 import *
-from binascii import *
 from lib import dns
+from pprintpp import pprint
 
 SERVER_ADDR = '27.96.45.147'
+GATEWAY_ADDR = '10.10.0.1'
+IF_NAME = 'tun1'
+TUN_PATH = '/dev/net/tun'
+
+queue = Queue.Queue()
+
+class VPNServer(threading.Thread):
+    TUNSETIFF = 0x400454ca
+    TUNSETOWNER = TUNSETIFF + 2
+    IFF_TUN = 0x0001
+    IFF_TAP = 0x0002
+    IFF_NO_PI = 0x1000
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.tun = os.open(self.TUN_PATH, os.O_RDWR)
+        ifr = struct.pack('16sH', IF_NAME, self.IFF_TUN | self.IFF_NO_PI)
+        ioctl(self.tun, self.TUNSETIFF, ifr)
+        ioctl(self.tun, self.TUNSETOWNER, 1000)
+        subprocess.check_call('sudo ifconfig %s %s %s netmask 255.255.255.0 up' % (IF_NAME, GATEWAY_ADDR, GATEWAY_ADDR), shell=True)
+    def run(self):
+        global queue
+        while (True):
+            packet = os.read(self.tun, 1500)
+            id = IP(packet).id
+            dl = dns.datalist.DataList(packet, '')
+            count = len(dl)
+            init = None
+            data = []
+            for x in xrange(count):
+                if x:
+                    init = dns.requests.rx.Send(data=dl[x], sequence=x, id=id)
+                else:
+                    data.append(dns.requests.rx.Initialize(data=dl[x], count=count, id=id))
+            queue.put((init, data, id, count))
 
 class DNSServer(threading.Thread):
     def __init__(self):
@@ -16,10 +54,11 @@ class DNSServer(threading.Thread):
         #self.sock.bind(SERVER_ADDR, 53)
         self.sock.bind(('0.0.0.0', 53))
     def run(self):
+        global queue
         while (True):
             req, addr = self.sock.recvfrom(1024)
             req = DNS(req)
-            ls(req)
+            #ls(req)
             if req.qd == None:
                 continue
             if req.qd.qtype == dns.type.NS:
@@ -28,7 +67,9 @@ class DNSServer(threading.Thread):
                 rdata = '\x034no\x02jp\x00\x034no\x02jp\x00\x00\xff\xff\xff\x00\x00\xff\xff\x00\x00\x0e\x10\x00\x00\x0e\x10\x00\x00\x0e\x10'
             else:
                 rdata = '12.34.56.78'
-            ans = DNSRR(rrname=req.qd.qname, ttl=0, rdata=rdata, type=req.qd.qtype)
+                data = dns.requests.rx.ServerReader(str(req.qd.qdata))
+                pprint(data)
+            ans = DNSRR(rrname=req.qd.qname, ttl=1, rdata=rdata, type=req.qd.qtype)
             res = DNS(id=req.id, qr=1, qd=req.qd, an=ans)
             self.sock.sendto(str(res), addr)
 
