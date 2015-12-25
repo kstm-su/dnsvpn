@@ -46,10 +46,8 @@ class Reader():
         self.request = req
         self.params = None
         for x in self.classes:
-            #print x().pattern(**kwargs)
             mobj = re.match(x().pattern(**kwargs), req)
             if mobj:
-                print x.__name__
                 kwargs = mobj.groupdict()
                 req = x(True, **kwargs)
                 self.params = req.params
