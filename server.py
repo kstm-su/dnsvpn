@@ -49,6 +49,7 @@ class DNSServer(threading.Thread):
         threading.Thread.__init__(self)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((settings.SERVER_ADDR, 53))
+        #self.sock.bind(('0.0.0.0', 53))
     def run(self):
         global queue
         while (True):
@@ -61,7 +62,7 @@ class DNSServer(threading.Thread):
                 rdata = settings.SERVER_ADDR
             else:
                 rdata = '12.34.56.78'
-                data = dns.requests.rx.ServerReader(str(req.qd.qdata))
+                data = dns.requests.rx.ServerReader(str(req.qd.qdata), settings.HOSTNAME)
                 pprint(data)
             ans = DNSRR(rrname=req.qd.qname, ttl=1, rdata=rdata, type=req.qd.qtype)
             res = DNS(id=req.id, qr=1, qd=req.qd, an=ans)
