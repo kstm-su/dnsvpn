@@ -1,4 +1,5 @@
-SERVER_ADDR=''
+SERVER_ADDR = ''
+CLIENT_ADDR = ''
 GATEWAY_ADDR = ''
 IF_NAME = ''
 TUN_PATH = ''
