@@ -50,5 +50,6 @@ class Reader():
             if mobj:
                 kwargs = mobj.groupdict()
                 req = x(True, **kwargs)
+                self.type = x.__name__
                 self.params = req.params
                 return

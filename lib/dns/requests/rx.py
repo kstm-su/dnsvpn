@@ -5,8 +5,11 @@ from request import *
 class Polling(Request):
     format = (fields.Padding, fields.HostName, '')
 
-class Send(Request):
+class Initialize(Request):
     format = (fields.Count, fields.ID, fields.Data)
+
+class Send(Request):
+    format = (fields.Sequence, fields.ID, fields.Data)
 
 class Receive(Request):
     format = (fields.Padding, fields.Sequence, fields.ID, fields.HostName, '')
@@ -18,4 +21,4 @@ class ClientReader(Reader):
     classes = (Receive, Polling)
 
 class ServerReader(Reader):
-    classes = (Error, Send)
+    classes = (Error, Initialize, Send)
