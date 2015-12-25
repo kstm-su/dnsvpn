@@ -33,7 +33,17 @@ class TunReader(threading.Thread):
                 record = dns.requests.tx.Send(data=dl[x], sequence=x, id=id, hostname=SERVER_HOSTNAME)
                 qd = DNSQR(qname=str(record), qtype=dns.type.A, qclass=1)
                 packets.append(DNS(id=genID(), rd=1, qd=qd))
+
             ls(packets[0])
+	    
+	    req = dns.requests.tx.Initialize(count=count, id=id, hostname=SERVER_HOSTNAME)
+	    res = dns.requests.tx.ClientReader(str(req), hostname=SERVER_HOSTNAME)
+	    
+
+	    dns.requests.tx.ClientReader(str(
+
+	    
+
 
 class TunWriter(threading.Thread):
     def __init__(self):

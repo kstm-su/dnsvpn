@@ -6,15 +6,12 @@ import subprocess
 import os
 import struct
 import Queue
+import settings
+
 from fcntl import ioctl
 from scapy.all import *
 from lib import dns
 from pprintpp import pprint
-
-SERVER_ADDR = '27.96.45.147'
-GATEWAY_ADDR = '10.10.0.1'
-IF_NAME = 'tun1'
-TUN_PATH = '/dev/net/tun'
 
 queue = Queue.Queue()
 
@@ -26,11 +23,11 @@ class VPNServer(threading.Thread):
     IFF_NO_PI = 0x1000
     def __init__(self):
         threading.Thread.__init__(self)
-        self.tun = os.open(self.TUN_PATH, os.O_RDWR)
-        ifr = struct.pack('16sH', IF_NAME, self.IFF_TUN | self.IFF_NO_PI)
+        self.tun = os.open(self.settings.TUN_PATH, os.O_RDWR)
+        ifr = struct.pack('16sH', settings.IF_NAME, self.IFF_TUN | self.IFF_NO_PI)
         ioctl(self.tun, self.TUNSETIFF, ifr)
         ioctl(self.tun, self.TUNSETOWNER, 1000)
-        subprocess.check_call('sudo ifconfig %s %s %s netmask 255.255.255.0 up' % (IF_NAME, GATEWAY_ADDR, GATEWAY_ADDR), shell=True)
+        subprocess.check_call('sudo ifconfig %s %s %s netmask 255.255.255.0 up' % (settings.IF_NAME, settings.GATEWAY_ADDR, settings.GATEWAY_ADDR), shell=True)
     def run(self):
         global queue
         while (True):
@@ -51,8 +48,7 @@ class DNSServer(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        #self.sock.bind(SERVER_ADDR, 53)
-        self.sock.bind(('0.0.0.0', 53))
+        self.sock.bind(settings.SERVER_ADDR, 53)
     def run(self):
         global queue
         while (True):
@@ -62,7 +58,7 @@ class DNSServer(threading.Thread):
             if req.qd == None:
                 continue
             if req.qd.qtype == dns.type.NS:
-                rdata = SERVER_ADDR
+                rdata = settings.SERVER_ADDR
             elif req.qd.qtype == dns.type.SOA:
                 rdata = '\x034no\x02jp\x00\x034no\x02jp\x00\x00\xff\xff\xff\x00\x00\xff\xff\x00\x00\x0e\x10\x00\x00\x0e\x10\x00\x00\x0e\x10'
             else:

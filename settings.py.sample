@@ -1,0 +1,4 @@
+SERVER_ADDR=''
+GATEWAY_ADDR = ''
+IF_NAME = ''
+TUN_PATH = ''
