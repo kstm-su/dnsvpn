@@ -1,17 +1,20 @@
+# coding: UTF-8
 import subprocess
 import threading
 import os
 import socket
 import random
+import settings
 from scapy.all import *
 from lib import dns
-
-tun = os.open('/dev/tun1', os.O_RDWR)
-subprocess.check_call('sudo ifconfig tun1 10.10.0.2 10.10.0.2 netmask 255.255.255.0 up', shell=True)
+from printpp import pprint
 
 # ServerAddr and hostname
 SERVER_ADDR = '160.252.88.2'
 SERVER_HOSTNAME = 'v.fono.jp'
+IF_NAME = 'tun1'
+tun = os.open(TUN_PATH, os.O_RDWR)
+subprocess.check_call('sudo ifconfig tun1 % % netmask 255.255.255.0 up', shell=True)
 
 def genID():
     return random.randint(0, 0xffff)
@@ -19,6 +22,7 @@ def genID():
 class TunReader(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self) 
+        client = socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def run(self):
         global tun
@@ -36,14 +40,18 @@ class TunReader(threading.Thread):
 
             ls(packets[0])
 	    
-	    req = dns.requests.tx.Initialize(count=count, id=id, hostname=SERVER_HOSTNAME)
-	    res = dns.requests.tx.ClientReader(str(req), hostname=SERVER_HOSTNAME)
-	    
+	    record = dns.requests.tx.Initialize(count=count, id=id, hostname=SERVER_HOSTNAME)
+            qd = DNSQR(qnmme=str(record), qtype=dns.type.A, qclass=1)
+            req = DNS(id=genID(), rd=1, qd=qd)
+            client.sendto(str(req), (SERVER_ADDR, 53))
 
-	    dns.requests.tx.ClientReader(str(
-
-	    
-
+	    res = dns.requests.tx.ClientReader(str(client.recv(1024)), hostname=SERVER_HOSTNAME)
+            if res.type == 'Ok':
+                for p in packets:
+                    client.sendto(str(p), (SERVER_ADDR, 53))
+                    res = dns.requests.tx.ClientReader(str(client.recv(1024)), hostname=SERVER_HOSTNAME)
+                    if res.type == 'Error':
+                        break
 
 class TunWriter(threading.Thread):
     def __init__(self):
@@ -52,6 +60,7 @@ class TunWriter(threading.Thread):
     def run(self):
         global tun
         while(True):
+            
             m = base64.urlsafe_b64decode(message)
             os.write(tun, m)
 
