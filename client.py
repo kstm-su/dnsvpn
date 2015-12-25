@@ -1,9 +1,6 @@
 import subprocess
 import threading
 import os
-import time
-import binascii
-import base64
 import socket
 import random
 from scapy.all import *
@@ -22,7 +19,6 @@ def genID():
 class TunReader(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self) 
-
 
     def run(self):
         global tun
