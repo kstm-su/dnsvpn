@@ -62,7 +62,7 @@ class DNSServer(threading.Thread):
                 rdata = settings.SERVER_ADDR
             else:
                 rdata = '12.34.56.78'
-                data = dns.requests.rx.ServerReader(str(req.qd.qdata), settings.HOSTNAME)
+                data = dns.requests.rx.ServerReader(str(req.qd.qdata), settings.SERVER_HOSTNAME)
                 pprint(data)
             ans = DNSRR(rrname=req.qd.qname, ttl=1, rdata=rdata, type=req.qd.qtype)
             res = DNS(id=req.id, qr=1, qd=req.qd, an=ans)

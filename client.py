@@ -10,11 +10,10 @@ from lib import dns
 from printpp import pprint
 
 # ServerAddr and hostname
-SERVER_ADDR = '160.252.88.2'
 SERVER_HOSTNAME = 'v.fono.jp'
 IF_NAME = 'tun1'
 tun = os.open(TUN_PATH, os.O_RDWR)
-subprocess.check_call('sudo ifconfig tun1 % % netmask 255.255.255.0 up', shell=True)
+subprocess.check_call('sudo ifconfig %s %s %s netmask 255.255.255.0 up' % (settings.IF_NAME, settings.CLIENT_ADDR, settings.GATEWAY_ADDR), shell=True)
 
 def genID():
     return random.randint(0, 0xffff)
@@ -43,12 +42,12 @@ class TunReader(threading.Thread):
 	    record = dns.requests.tx.Initialize(count=count, id=id, hostname=SERVER_HOSTNAME)
             qd = DNSQR(qnmme=str(record), qtype=dns.type.A, qclass=1)
             req = DNS(id=genID(), rd=1, qd=qd)
-            client.sendto(str(req), (SERVER_ADDR, 53))
+            client.sendto(str(req), (settings.NAMESERVER_ADDR, 53))
 
 	    res = dns.requests.tx.ClientReader(str(client.recv(1024)), hostname=SERVER_HOSTNAME)
             if res.type == 'Ok':
                 for p in packets:
-                    client.sendto(str(p), (SERVER_ADDR, 53))
+                    client.sendto(str(p), (settings.NAMESERVER_ADDR, 53))
                     res = dns.requests.tx.ClientReader(str(client.recv(1024)), hostname=SERVER_HOSTNAME)
                     if res.type == 'Error':
                         break
