@@ -14,8 +14,8 @@ class Ok(Request):
 class Error(Request):
     format = ('0.0', fields.ErrorNo)
 
-class ClientReader(Reader):
+class ServerReader(Reader):
     classes = (Initialize, Send)
 
-class ServerReader(Reader):
+class ClientReader(Reader):
     classes = (Error, Ok)

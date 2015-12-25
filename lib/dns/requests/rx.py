@@ -17,8 +17,8 @@ class Receive(Request):
 class Error(Request):
     format = ('0.0', fields.ErrorNo)
 
-class ClientReader(Reader):
+class ServerReader(Reader):
     classes = (Receive, Polling)
 
-class ServerReader(Reader):
+class ClientReader(Reader):
     classes = (Error, Initialize, Send)
