@@ -59,8 +59,6 @@ class DNSServer(threading.Thread):
                 continue
             if req.qd.qtype == dns.type.NS:
                 rdata = settings.SERVER_ADDR
-            elif req.qd.qtype == dns.type.SOA:
-                rdata = '\x034no\x02jp\x00\x034no\x02jp\x00\x00\xff\xff\xff\x00\x00\xff\xff\x00\x00\x0e\x10\x00\x00\x0e\x10\x00\x00\x0e\x10'
             else:
                 rdata = '12.34.56.78'
                 data = dns.requests.rx.ServerReader(str(req.qd.qdata))

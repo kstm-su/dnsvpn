@@ -11,7 +11,7 @@ subprocess.check_call('sudo ifconfig tun1 10.10.0.2 10.10.0.2 netmask 255.255.25
 
 # ServerAddr and hostname
 SERVER_ADDR = '160.252.88.2'
-SERVER_HOSTNAME = '4no.jp'
+SERVER_HOSTNAME = 'v.fono.jp'
 
 def genID():
     return random.randint(0, 0xffff)
