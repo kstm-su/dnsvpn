@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from base64 import *
+import base64
+
 
 class DataList(list):
     def __init__(self, src, hostname='', size=254, separate=63, used=11):
@@ -15,11 +16,10 @@ class DataList(list):
             self.separate = separate
             self.used = used + len(self.hostname)
             self._split()
+
     def _split(self):
-        src = urlsafe_b64encode(self.src).replace('=', '')
-        remain = self.size - self.used
+        src = base64.urlsafe_b64encode(self.src).replace('=', '')
         seq = 0
-        res = []
         buf = ''
         while len(src):
             section = src[:self.separate]
@@ -37,6 +37,7 @@ class DataList(list):
             self.append(buf[:-1])
             seq += 1
         self.count = seq
+
     def _join(self):
         src = ''.join(self).replace('.', '')
-        self.src = urlsafe_b64decode(src)
+        self.src = base64.urlsafe_b64decode(src)

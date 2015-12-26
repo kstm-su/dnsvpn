@@ -5,9 +5,8 @@ import os
 import socket
 import random
 import settings
-from scapy.all import *
+from scapy.all import *  # noqa
 from lib import dns
-from printpp import pprint
 
 # ServerAddr and hostname
 SERVER_HOSTNAME = 'v.fono.jp'
@@ -15,13 +14,15 @@ IF_NAME = 'tun1'
 tun = os.open(TUN_PATH, os.O_RDWR)
 subprocess.check_call('sudo ifconfig %s %s %s netmask 255.255.255.0 up' % (settings.IF_NAME, settings.CLIENT_ADDR, settings.GATEWAY_ADDR), shell=True)
 
+
 def genID():
     return random.randint(0, 0xffff)
 
+
 class TunReader(threading.Thread):
     def __init__(self):
-        threading.Thread.__init__(self) 
-        client = socket(socket.AF_INET, socket.SOCK_DGRAM)
+        threading.Thread.__init__(self)
+        self.client = socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def run(self):
         global tun
@@ -33,24 +34,27 @@ class TunReader(threading.Thread):
             packets = []
             count = len(dl)
             for x in xrange(count):
-                record = dns.requests.tx.Send(data=dl[x], sequence=x, id=id, hostname=SERVER_HOSTNAME)
+                record = dns.requests.tx.Send(data=dl[x], sequence=x,
+                                              id=id, hostname=SERVER_HOSTNAME)
                 qd = DNSQR(qname=str(record), qtype=dns.type.A, qclass=1)
                 packets.append(DNS(id=genID(), rd=1, qd=qd))
-
             ls(packets[0])
-	    
-	    record = dns.requests.tx.Initialize(count=count, id=id, hostname=SERVER_HOSTNAME)
+            record = dns.requests.tx.Initialize(count=count, id=id,
+                                                hostname=SERVER_HOSTNAME)
             qd = DNSQR(qnmme=str(record), qtype=dns.type.A, qclass=1)
             req = DNS(id=genID(), rd=1, qd=qd)
             client.sendto(str(req), (settings.NAMESERVER_ADDR, 53))
-
-	    res = dns.requests.tx.ClientReader(str(client.recv(1024)), hostname=SERVER_HOSTNAME)
+            res = dns.requests.tx.ClientReader(str(client.recv(1024)),
+                                               hostname=SERVER_HOSTNAME)
             if res.type == 'Ok':
                 for p in packets:
                     client.sendto(str(p), (settings.NAMESERVER_ADDR, 53))
-                    res = dns.requests.tx.ClientReader(str(client.recv(1024)), hostname=SERVER_HOSTNAME)
+                    res = dns.requests.tx.ClientReader(
+                        str(client.recv(1024)),
+                        hostname=SERVER_HOSTNAME)
                     if res.type == 'Error':
                         break
+
 
 class TunWriter(threading.Thread):
     def __init__(self):
@@ -59,7 +63,6 @@ class TunWriter(threading.Thread):
     def run(self):
         global tun
         while(True):
-            
             m = base64.urlsafe_b64decode(message)
             os.write(tun, m)
 
