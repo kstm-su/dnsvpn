@@ -38,7 +38,6 @@ class Packet(dict):
 
     def split(self):
         src = self.encode(self.src)
-        print(src, self.maxlen)
         seq = 0
         buf = ''
         while len(src):
@@ -64,5 +63,4 @@ class Packet(dict):
     def decode(self, data):
         data = data.replace('.', '')
         padding = '=' * ((4 - len(data) % 4) % 4)
-        print((data + padding).encode('utf8'))
         return base64.urlsafe_b64decode((data + padding).encode('utf8'))
