@@ -44,15 +44,27 @@ class TunTapThread(threading.Thread):
                 fcntl.ioctl(self.tun, linux.TUNSETOWNER, self.uid)
         self.ifup()
 
+    def calcNetwork(self):
+        addr = [int(i) for i in self.addr.split('.')]
+        mask = [int(i) for i in self.netmask.split('.')]
+        return '.'.join(str(addr[i] & mask[i]) for i in range(4))
+
     def ifup(self):
-        cmd = 'sudo ifconfig {name} {addr} {gateway} netmask {netmask} up'
         option = {
             'name': self.name,
             'addr': self.addr,
             'gateway': self.gateway,
             'netmask': self.netmask,
+            'network': self.calcNetwork(),
         }
-        subprocess.check_call(cmd.format(**option), shell=True)
+        if self.isLinux:
+            cmd = 'sudo ifconfig {name} {addr} netmask {netmask} up'
+            subprocess.check_call(cmd.format(**option), shell=True)
+            cmd = 'sudo route add -net {network} netmask {netmask} gw {gateway}'
+            subprocess.check_call(cmd.format(**option), shell=True)
+        if self.isMacOSX:
+            cmd = 'sudo ifconfig {name} {addr} {gateway} netmask {netmask} up'
+            subprocess.check_call(cmd.format(**option), shell=True)
 
     def run(self):
         while (True):
