@@ -45,7 +45,7 @@ class TunTapThread(threading.Thread):
         self.ifup()
 
     def ifup(self):
-        cmd = 'sudo ifconfig {name} {gateway} {addr} netmask {netmask} up'
+        cmd = 'sudo ifconfig {name} {addr} {gateway} netmask {netmask} up'
         option = {
             'name': self.name,
             'addr': self.addr,
