@@ -3,7 +3,7 @@
 import threading
 import socket
 import random
-from scapy.all import DNS, DNSQR, ls
+from scapy.all import DNS, DNSQR
 
 TYPE = {
     'ANY': 0,
@@ -97,7 +97,6 @@ class Client(object):
             qtype = TYPE[qtype]
         qd = DNSQR(qname=qname, qtype=qtype, qclass=1)
         request = DNS(id=id, rd=1, qd=qd)
-        ls(request)
         self.data = request
 
     def generateID(self):
