@@ -78,8 +78,7 @@ class RxSend(Query):
 
 
 class Receive(Query):
-    fields = (Field.Padding,
-              Field.HexSequence, Field.ID, Field.HostName, '')
+    fields = (Field.HexSequence, Field.ID, Field.Padding, Field.HostName, '')
 
 
 class TxInitialize(Query):
