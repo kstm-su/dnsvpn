@@ -70,11 +70,11 @@ class Polling(Query):
 
 
 class RxInitialize(Query):
-    fields = (Field.HexCount, Field.ID, Field.Data)
+    fields = (Field.Data, Field.HexCount, Field.ID)
 
 
 class RxSend(Query):
-    fields = (Field.HexSequence, Field.ID, Field.Data)
+    fields = (Field.Data, Field.HexSequence, Field.ID)
 
 
 class Receive(Query):
