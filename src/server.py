@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import time
 from queue import Queue
 from scapy.all import IP, DNS, DNSRR, ls
 from tuntap import TunThread
@@ -106,4 +107,4 @@ dnsd = DNSServer()
 dnsd.start()
 
 while True:
-    None
+    time.sleep(1)
