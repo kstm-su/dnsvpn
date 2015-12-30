@@ -31,10 +31,7 @@ class Packet(dict):
         self.count = self.split()
 
     def unpack(self):
-        buf = bytearray()
-        for i in range(self.count):
-            buf += self.decode(self[i])
-        return bytes(buf)
+        return self.decode(''.join([s for s in self.values()]))
 
     def split(self):
         src = self.encode(self.src)
