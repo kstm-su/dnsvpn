@@ -48,7 +48,7 @@ class DNSServer(dns.ServerThread):
         params = ini.decode()
         if params is not None:
             print('tx initialize', params)
-            txpool[(addr, params['id'])] = Packet(params['count'])
+            txpool[params['id']] = Packet(params['count'])
             rdata = query.Ok(count=params['count'], sequence=params['count'])
             ans = DNSRR(rrname=req.qd.qname, ttl=1, rdata=bytes(rdata), type=1)
             res = DNS(id=req.id, qr=1, qd=req.qd, an=ans)
@@ -57,13 +57,13 @@ class DNSServer(dns.ServerThread):
         params = send.decode()
         if params is not None:
             print('tx send', params, txpool)
-            pkt = txpool[(addr, params['id'])]
+            pkt = txpool[params['id']]
             pkt[params['sequence']] = params['data']
             remain = pkt.count - len(pkt)
             # print('remain', remain)
             if not remain:
                 tun.send(pkt.unpack())
-                del txpool[(addr, params['id'])]
+                del txpool[params['id']]
             rdata = query.Ok(count=remain, sequence=params['sequence'])
             ans = DNSRR(rrname=req.qd.qname, ttl=1, rdata=bytes(rdata), type=1)
             res = DNS(id=req.id, qr=1, qd=req.qd, an=ans)
@@ -84,7 +84,7 @@ class DNSServer(dns.ServerThread):
                     rtype = 1
                 else:
                     seq = seq[0]
-                    rdata = query.RxSend(data=pkt[seq], sequence=seq, id=pkt.id)
+                    rdata = query.RxSend(data=pkt[seq], sequence=seq, id=pkt.id, hostname=hostname)
                     rtype = 5
                 ans = DNSRR(rrname=req.qd.qname, ttl=1, rdata=bytes(rdata), type=rtype)
                 res = DNS(id=req.id, qr=1, qd=req.qd, an=ans)
@@ -92,7 +92,6 @@ class DNSServer(dns.ServerThread):
         poll = query.Polling(qname, hostname=hostname)
         params = poll.decode()
         if params is not None:
-            # print('Polling', rxpool.empty())
             if rxpool.empty():
                 rdata = query.Error()
                 rtype = 1
@@ -102,11 +101,11 @@ class DNSServer(dns.ServerThread):
                     rdata = query.Error()
                     rtype = 1
                 rxpool[pkt.id] = pkt
-                rdata = query.RxInitialize(data=pkt[0], count=pkt.count, id=pkt.id)
+                rdata = query.RxInitialize(data=pkt[0], count=pkt.count, id=pkt.id, hostname=hostname)
                 rxpool.task_done()
                 rtype = 5
-                # print('rx init', rdata)
-            # print(rdata, rtype)
+                print('rx init', rdata)
+            print(rdata, rtype)
             ans = DNSRR(rrname=req.qd.qname, ttl=1, rdata=bytes(rdata), type=rtype)
             res = DNS(id=req.id, qr=1, qd=req.qd, an=ans)
             return res
