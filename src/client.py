@@ -7,8 +7,13 @@ import dns
 import query
 from packet import Packet
 
-addr = '192.168.33.10'
+# addr = '192.168.33.10'
+# addr = '8.8.8.8'
+# addr = '27.120.111.8'
+addr = '160.252.88.2'
 hostname = 'vpn.bgpat.net'
+
+dns.Client.ext = True
 
 
 class VPNClient(TunThread):
@@ -54,17 +59,24 @@ pool = {}
 
 
 while True:
-    poll = query.Polling(hostname=hostname, padding=253-len(hostname))
+    poll = query.Polling(hostname=hostname, padding=252-len(hostname))
+    print(poll)
     cl = dns.Client(addr=addr, type='A', data={'value': bytes(poll)})
-    rdata = cl.response.an.rdata
-    if isinstance(rdata, bytes):
-        rdata = rdata.decode('utf8')
+    try:
+        rdata = cl.response.an.rdata
+        if isinstance(rdata, bytes):
+            rdata = rdata.decode('utf8')
+    except:
+        print('except: ')
+        ls(cl.response)
+        continue
+    print('rdata', rdata)
     if query.Error(cl.response.an.rdata).decode() is not None:
-        # print('noop')
-        time.sleep(0.1)
+        print('noop')
+        time.sleep(0.5)
         continue
     while True:
-        params = query.RxInitialize(rdata).decode()
+        params = query.RxInitialize(rdata, hostname=hostname).decode()
         print('recv', rdata, pool)
         if params is not None and params['id'] not in pool:
             pkt = Packet(params['count'])
@@ -72,7 +84,7 @@ while True:
             pool[id] = pkt
             seq = 0
         else:
-            params = query.RxSend(rdata).decode()
+            params = query.RxSend(rdata, hostname=hostname).decode()
             print('rx send', params, rdata)
             id = params['id']
             pkt = pool[id]

@@ -3,7 +3,7 @@
 import threading
 import socket
 import random
-from scapy.all import DNS, DNSQR
+from scapy.all import DNS, DNSQR, DNSRROPT
 
 TYPE = {
     'ANY': 0,
@@ -68,7 +68,7 @@ class Client(object):
     port = 53
     size = 4096
     ext = False
-
+    ext = True
     def __init__(self, **kwargs):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.addr = kwargs.get('addr', self.addr)
@@ -87,6 +87,8 @@ class Client(object):
         self.sock.sendto(bytes(self.data), (self.addr, self.port))
         res = self.sock.recv(4096)
         self.response = DNS(res)
+        if self.response.ar is not None:
+            print(self.response.ar.rclass)
         return res
 
     def makeRequest(self, **kwargs):
@@ -96,7 +98,10 @@ class Client(object):
         if isinstance(qtype, str):
             qtype = TYPE[qtype]
         qd = DNSQR(qname=qname, qtype=qtype, qclass=1)
-        request = DNS(id=id, rd=1, qd=qd)
+        ar = None
+        if self.ext:
+            ar = DNSRROPT(rrname='.', type=TYPE['OPT'], rclass=self.size)
+        request = DNS(id=id, rd=1, qd=qd, ar=ar)
         self.data = request
 
     def generateID(self):
