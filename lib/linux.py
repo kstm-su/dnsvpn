@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import struct
 
 _IOC_NRBITS = 8

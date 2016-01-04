@@ -2,11 +2,11 @@
 
 import time
 from queue import Queue
-from scapy.all import IP, DNS, DNSRR, ls
-from tuntap import TunThread
-import dns
-import query
-from packet import Packet
+from scapy.all import DNS, DNSRR
+from lib.tuntap import TunThread
+from lib import dns
+from lib import query
+from lib.packet import Packet
 
 hostname = 'vpn.bgpat.net'
 
@@ -23,7 +23,7 @@ txpool = PacketPool()
 
 class VPNServer(TunThread):
     daemon = True
-    name = 'tun_server'
+    name = 'tun0'
     addr = '192.168.200.1'
     gateway = '192.168.200.1'
 

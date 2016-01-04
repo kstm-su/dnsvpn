@@ -1,5 +1,5 @@
 import re
-import field as Field
+import lib.field as Field
 
 
 class Query(list):
@@ -8,8 +8,6 @@ class Query(list):
 
     def __init__(self, encoded=None, **kwargs):
         list.__init__(self)
-        self.encoded = str(encoded)
-        self.params = kwargs
         for field in self.fields:
             if isinstance(field, str):
                 self.append(field)
@@ -19,6 +17,11 @@ class Query(list):
                 self.append(field(value))
             else:
                 self.append(field())
+        if encoded is None:
+            self.params = kwargs
+        else:
+            self.encoded = str(encoded)
+            self.params = self.decode()
 
     def __bytes__(self):
         return self.encode().encode('utf-8')

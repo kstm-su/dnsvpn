@@ -1,9 +1,7 @@
-#!/usr/bin/env python3
-
 import threading
 import socket
 import random
-from scapy.all import DNS, DNSQR, DNSRROPT
+from scapy.all import DNS, DNSQR, DNSRR, DNSRROPT
 
 TYPE = {
     'ANY': 0,
@@ -55,11 +53,24 @@ class ServerThread(threading.Thread):
     def run(self):
         while True:
             data, client = self.sock.recvfrom(self.size)
-            response = self.receive(DNS(data), client[0], client[1])
+            request = DNS(data)
+            try:
+                qname = request.qd.qname
+            except:
+                qname = None
+            response = self.receive(qname, client[0], client[1], request)
             self.sock.sendto(bytes(response), client)
 
-    def receive(self, data, addr, port):
-        return data
+    def receive(self, req, addr, port, data):
+        return {}
+
+    def makeResponse(self, req, **kwargs):
+        id = req.id
+        ttl = kwargs.get('ttl', 1)
+        rdata = kwargs.get('value', b'')
+        rtype = TYPE[kwargs.get('type', 'A')]
+        ans = DNSRR(rrname=req.qd.qname, ttl=ttl, rdata=rdata, type=rtype)
+        return DNS(id=id, qr=1, qd=req.qd, an=ans, ar=req.ar)
 
 
 class Client(object):
@@ -68,7 +79,7 @@ class Client(object):
     port = 53
     size = 4096
     ext = False
-    ext = True
+
     def __init__(self, **kwargs):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.addr = kwargs.get('addr', self.addr)
@@ -85,7 +96,7 @@ class Client(object):
 
     def send(self):
         self.sock.sendto(bytes(self.data), (self.addr, self.port))
-        res = self.sock.recv(4096)
+        res = self.sock.recv(self.size)
         self.response = DNS(res)
         if self.response.ar is not None:
             print(self.response.ar.rclass)

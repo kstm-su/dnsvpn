@@ -4,7 +4,7 @@ import os
 import subprocess
 import threading
 import fcntl
-import linux
+from lib import linux
 
 
 class TunTapThread(threading.Thread):

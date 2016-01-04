@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
-
 import base64
+from queue import Queue
 from scapy.all import IP
 
 
@@ -61,3 +60,22 @@ class Packet(dict):
         data = data.replace('.', '')
         padding = '=' * ((4 - len(data) % 4) % 4)
         return base64.urlsafe_b64decode((data + padding).encode('utf8'))
+
+
+class PacketPool(dict):
+
+    def __init__(self):
+        dict.__init__(self)
+        self.queue = Queue()
+
+    def push(self, data):
+        return self.queue.put(data)
+
+    def front(self):
+        return self.queue.get()
+
+    def pop(self):
+        return self.queue.task_done()
+
+    def empty(self):
+        return self.queue.empty()

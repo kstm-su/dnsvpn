@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 import time
-from scapy.all import IP, ls
-from tuntap import TunThread
-import dns
-import query
-from packet import Packet
+from scapy.all import ls
+from lib.tuntap import TunThread
+from lib import dns
+from lib import query
+from lib.packet import Packet
 
 # addr = '192.168.33.10'
 # addr = '8.8.8.8'
@@ -18,7 +18,7 @@ dns.Client.ext = True
 
 class VPNClient(TunThread):
     daemon = True
-    name = 'tun_client'
+    name = 'tun0'
     addr = '192.168.200.2'
     gateway = '192.168.200.1'
 
