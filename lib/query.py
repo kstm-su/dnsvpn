@@ -41,9 +41,9 @@ class Query(list):
                 else:
                     value = field.pattern
                 name = field.name.encode('utf8')
-                pattern = b'(?P<%b>%b)' % (name, value)
+                pattern = b'(?P<%s>%s)' % (name, value)
             patterns.append(pattern)
-        return b'^%b$' % re.escape(self.separator).join(patterns)
+        return b'^%s$' % re.escape(self.separator).join(patterns)
 
     def encode(self):
         return self.separator.join([bytes(field) for field in self])
