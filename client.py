@@ -70,14 +70,14 @@ while True:
         for ans in client.answers:
             rxInit = query.RxInitialize(ans)
             rxSend = query.RxSend(ans)
-            if rxInit is not None:
+            if rxInit.params is not None:
                 count = rxInit.params['count']
                 id = rxInit.params['id']
                 pkt = Packet(count)
                 rxpool[id] = pkt
                 seq = 0
                 data = rxInit.params['data']
-            elif rxSend is not None:
+            elif rxSend.params is not None:
                 id = rxSend.params['id']
                 seq = rxSend.params['sequence']
                 if id not in rxpool:
