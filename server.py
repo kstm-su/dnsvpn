@@ -8,6 +8,7 @@ from lib.packet import Packet, PacketPool
 
 hostname = b'vpn.bgpat.net'
 query.Field.HostName.default = hostname
+query.Field.HostName.pattern = hostname
 Packet.hostname = hostname
 
 txpool = PacketPool()
@@ -73,7 +74,7 @@ class DNSServer(dns.ServerThread):
         if not remain:
             tun.send(pkt.unpack())
             del txpool[id]
-        return query.Ok(count=remain, sequence=seq)
+        return query.Ok(count=count, sequence=seq)
 
     def rxrecv(self, id, seq):
         global rxpool

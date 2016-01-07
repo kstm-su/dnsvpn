@@ -10,6 +10,7 @@ from lib.packet import Packet, PacketPool
 addr = '192.168.33.10'
 hostname = b'vpn.bgpat.net'
 query.Field.HostName.default = hostname
+query.Field.HostName.pattern = hostname
 Packet.hostname = hostname
 
 txpool = PacketPool()
