@@ -23,7 +23,7 @@ class VPNServer(TunThread):
     def receive(self, data):
         global rxpool
         pkt = Packet(data)
-        rxpool.put(pkt)
+        rxpool.push(pkt)
 
 
 tun = VPNServer()
@@ -41,14 +41,18 @@ class DNSServer(dns.ServerThread):
         if txInit.params is not None:
             params = txInit.params
             res = self.txinit(params['id'], params['count'])
+            print('txinit', params)
         elif txSend.params is not None:
             params = txSend.params
             res = self.txsend(params['id'], params['sequence'], params['data'])
+            print('txsend', params)
         elif rxRecv.params is not None:
             params = rxRecv.params
             res = self.rxrecv(params['id'], params['sequence'])
+            print('rxrecv', params)
         elif rxPoll.params is not None:
             res = self.rxpoll()
+            print('rxpoll')
         else:
             res = query.Error()
         return {
