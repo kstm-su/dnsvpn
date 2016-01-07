@@ -33,8 +33,8 @@ class VPNClient(TunThread):
         while len(pkt):
             for ans in client.answers:
                 ok = query.Ok(ans)
-                count = ok['count']
-                seq = ok['sequence']
+                count = ok.params['count']
+                seq = ok.params['sequence']
                 if count != seq:
                     del pkt[seq]
                     if not len(pkt):
@@ -71,19 +71,19 @@ while True:
             rxInit = query.RxInitialize(ans)
             rxSend = query.RxSend(ans)
             if rxInit is not None:
-                count = rxInit['count']
-                id = rxInit['id']
+                count = rxInit.params['count']
+                id = rxInit.params['id']
                 pkt = Packet(count)
                 rxpool[id] = pkt
                 seq = 0
-                data = rxInit['data']
+                data = rxInit.params['data']
             elif rxSend is not None:
-                id = rxSend['id']
-                seq = rxSend['sequence']
+                id = rxSend.params['id']
+                seq = rxSend.params['sequence']
                 if id not in rxpool:
                     raise 'packet is not found'
                 pkt = rxpool[id]
-                data = rxSend['data']
+                data = rxSend.params['data']
             else:
                 break
             pkt[seq] = data
