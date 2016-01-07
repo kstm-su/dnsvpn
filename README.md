@@ -1,6 +1,11 @@
 # dnsvpn
 VPN over DNS Record
 
+## Dependency
+- python3.5
+- scapy-python3
+- tuntap
+
 - Debian, Ubuntu
 	1. `sudo apt-get install python3`
 	2. `sudo pip3 install scapy-python3`
