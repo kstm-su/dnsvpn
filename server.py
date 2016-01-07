@@ -38,13 +38,16 @@ class DNSServer(dns.ServerThread):
         txSend = query.TxSend(req)
         rxRecv = query.Receive(req)
         rxPoll = query.Polling(req)
-        if txInit is not None:
-            res = self.txinit(txInit['id'], txInit['count'])
-        elif txSend is not None:
-            res = self.txsend(txSend['id'], txSend['sequence'], txSend['data'])
-        elif rxRecv is not None:
-            res = self.rxrecv(rxRecv['id'], rxRecv['sequence'])
-        elif rxPoll is not None:
+        if txInit.params is not None:
+            params = txInit.params
+            res = self.txinit(params['id'], params['count'])
+        elif txSend.params is not None:
+            params = txSend.params
+            res = self.txsend(params['id'], params['sequence'], params['data'])
+        elif rxRecv.params is not None:
+            params = rxRecv.params
+            res = self.rxrecv(params['id'], params['sequence'])
+        elif rxPoll.params is not None:
             res = self.rxpoll()
         else:
             res = query.Error()
