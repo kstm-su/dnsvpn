@@ -5,7 +5,7 @@ from scapy.all import IP
 
 class Packet(dict):
     src = None
-    hostname = ''
+    hostname = b''
     size = 254
     separate = 63
     used = 11
@@ -30,12 +30,12 @@ class Packet(dict):
         self.count = self.split()
 
     def unpack(self):
-        return self.decode(''.join([s for s in self.values()]))
+        return self.decode(b''.join([s for s in self.values()]))
 
     def split(self):
         src = self.encode(self.src)
         seq = 0
-        buf = ''
+        buf = b''
         while len(src):
             sec = src[:self.separate]
             if len(buf) + len(sec) + 1 + self.used > self.maxlen:
@@ -43,23 +43,23 @@ class Packet(dict):
                 buf += src[:p]
                 src = src[p:]
                 self[seq] = buf
-                buf = ''
+                buf = b''
                 seq += 1
             else:
                 src = src[self.separate:]
-                buf += sec + '.'
+                buf += sec + b'.'
         if len(buf):
             self[seq] = buf[:-1]
             seq += 1
         return seq
 
     def encode(self, data):
-        return base64.urlsafe_b64encode(data).decode('utf8').replace('=', '')
+        return base64.urlsafe_b64encode(data).replace(b'=', b'')
 
     def decode(self, data):
-        data = data.replace('.', '')
-        padding = '=' * ((4 - len(data) % 4) % 4)
-        return base64.urlsafe_b64decode((data + padding).encode('utf8'))
+        data = data.replace(b'.', b'')
+        padding = b'=' * ((4 - len(data) % 4) % 4)
+        return base64.urlsafe_b64decode((data + padding))
 
 
 class PacketPool(dict):

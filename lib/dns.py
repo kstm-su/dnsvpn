@@ -23,18 +23,38 @@ TYPE = {
     'TXT': 16,
     'RP': 17,
     'AFSDB': 18,
+    'SIG': 24,
+    'KEY': 25,
     'AAAA': 28,
+    'LOC': 29,
     'SRV': 33,
+    'NAPTR': 35,
+    'KX': 36,
+    'CERT': 37,
     'A6': 38,
     'DNAME': 39,
     'OPT': 41,
+    'APL': 42,
     'DS': 43,
+    'SSHFP': 44,
+    'IPSECKEY': 45,
     'RRSIG': 46,
     'NSEC': 47,
     'DNSKEY': 48,
+    'DHCID': 49,
     'NSEC3': 50,
     'NSEC3PARAM': 51,
-    'ALL': 255,
+    'TLSA': 52,
+    'HIP': 55,
+    'CDS': 59,
+    'CDNSKEY': 60,
+    'TKEY': 249,
+    'TSIG': 250,
+    'IXFR': 251,
+    'AXFR': 252,
+    '*': 255,
+    'CAA': 257,
+    'TA': 32768,
     'DLV': 32769,
 }
 
@@ -59,6 +79,8 @@ class ServerThread(threading.Thread):
             except:
                 qname = None
             response = self.receive(qname, client[0], client[1], request)
+            if not isinstance(response, DNS):
+                response = self.makeResponse(request, **response)
             self.sock.sendto(bytes(response), client)
 
     def receive(self, req, addr, port, data):
@@ -78,14 +100,14 @@ class Client(object):
     addr = None
     port = 53
     size = 4096
-    ext = False
+    edns0 = False
 
     def __init__(self, **kwargs):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.addr = kwargs.get('addr', self.addr)
         self.port = kwargs.get('port', self.port)
         self.size = kwargs.get('size', self.size)
-        self.ext = kwargs.get('ext', self.ext)
+        self.edns0 = kwargs.get('edns0', self.edns0)
         if 'data' in kwargs:
             data = kwargs['data']
             if isinstance(data, DNS):
@@ -98,8 +120,14 @@ class Client(object):
         self.sock.sendto(bytes(self.data), (self.addr, self.port))
         res = self.sock.recv(self.size)
         self.response = DNS(res)
-        if self.response.ar is not None:
-            print(self.response.ar.rclass)
+        self.answers = []
+        x = self.response.an
+        for i in range(self.response.ancount):
+            rdata = x.rdata
+            if isinstance(rdata, str):
+                rdata = rdata.encode('utf8')
+            self.answers.append(rdata)
+            x = x.payload
         return res
 
     def makeRequest(self, **kwargs):
@@ -110,7 +138,7 @@ class Client(object):
             qtype = TYPE[qtype]
         qd = DNSQR(qname=qname, qtype=qtype, qclass=1)
         ar = None
-        if self.ext:
+        if self.edns0:
             ar = DNSRROPT(rrname='.', type=TYPE['OPT'], rclass=self.size)
         request = DNS(id=id, rd=1, qd=qd, ar=ar)
         self.data = request

@@ -18,7 +18,7 @@ class QueryTestCase(unittest.TestCase):
             params = {k: v() for k, v in ep.items()}
             e = Query(**params)
             d = Query(e, **dp)
-            self.assertEqual(d.decode(), params, (str(e), e.pattern(**dp)))
+            self.assertEqual(d.params, params, (bytes(e), e.pattern(**dp)))
 
     def query_not_equal(self, Query, ep=None, dp=None):
         if ep is None:
@@ -29,7 +29,7 @@ class QueryTestCase(unittest.TestCase):
             params = {k: v() for k, v in ep.items()}
             e = Query(**params)
             d = Query(e, **dp)
-            self.assertNotEqual(d.decode(), params, (str(e), e.pattern(**dp)))
+            self.assertNotEqual(d.decode(), params, (bytes(e), e.pattern(**dp)))
 
     def test_ok(self):
         self.query_equal(query.Ok, {
@@ -47,7 +47,7 @@ class QueryTestCase(unittest.TestCase):
         })
 
     def test_polling(self):
-        hostname = '.'.join([str(random.randint(0, 0xff)) for i in range(3)])
+        hostname = b'.'.join([bytes(random.randint(0, 0xff)) for i in range(3)])
         self.query_equal(query.Polling, {
             'hostname': lambda: hostname,
             'padding': lambda: random.randint(1, 0xff),
@@ -56,21 +56,29 @@ class QueryTestCase(unittest.TestCase):
         })
 
     def test_rx_initialize(self):
+        hostname = b'.'.join([bytes(random.randint(0, 0xff)) for i in range(3)])
         self.query_equal(query.RxInitialize, {
             'count': lambda: random.randint(1, 0xffff),
             'id': lambda: random.randint(0, 0xffff),
-            'data': lambda: str(random.randint(0, 0xffffffff)),
+            'data': lambda: str(random.randint(0, 0xffffffff)).encode('utf8'),
+            'hostname': lambda: hostname,
+        }, {
+            'hostname': hostname,
         })
 
     def test_rx_send(self):
+        hostname = b'.'.join([bytes(random.randint(0, 0xff)) for i in range(3)])
         self.query_equal(query.RxSend, {
             'sequence': lambda: random.randint(0, 0xffff),
             'id': lambda: random.randint(0, 0xffff),
-            'data': lambda: str(random.randint(0, 0xffffffff)),
+            'data': lambda: str(random.randint(0, 0xffffffff)).encode('utf8'),
+            'hostname': lambda: hostname,
+        }, {
+            'hostname': hostname,
         })
 
     def test_rx_receive(self):
-        hostname = '.'.join([str(random.randint(0, 0xff)) for i in range(3)])
+        hostname = b'.'.join([bytes(random.randint(0, 0xff)) for i in range(3)])
         self.query_equal(query.Receive, {
             'padding': lambda: random.randint(1, 0xff),
             'id': lambda: random.randint(0, 0xffff),
@@ -81,7 +89,7 @@ class QueryTestCase(unittest.TestCase):
         })
 
     def test_tx_initialize(self):
-        hostname = '.'.join([str(random.randint(0, 0xff)) for i in range(3)])
+        hostname = b'.'.join([bytes(random.randint(0, 0xff)) for i in range(3)])
         self.query_equal(query.TxInitialize, {
             'count': lambda: random.randint(1, 0xffff),
             'id': lambda: random.randint(0, 0xffff),
@@ -91,11 +99,11 @@ class QueryTestCase(unittest.TestCase):
         })
 
     def test_tx_send(self):
-        hostname = '.'.join([str(random.randint(0, 0xff)) for i in range(3)])
+        hostname = b'.'.join([bytes(random.randint(0, 0xff)) for i in range(3)])
         self.query_equal(query.TxSend, {
             'sequence': lambda: random.randint(0, 0xffff),
             'id': lambda: random.randint(0, 0xffff),
-            'data': lambda: str(random.randint(0, 0xffffffff)),
+            'data': lambda: str(random.randint(0, 0xffffffff)).encode('utf8'),
             'hostname': lambda: hostname,
         }, {
             'hostname': hostname,

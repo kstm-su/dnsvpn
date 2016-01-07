@@ -3,9 +3,9 @@ from random import choice as rand
 
 
 class QueryField(object):
-    name = None  # field name
-    default = ''
-    pattern = ''
+    name = None
+    default = b''
+    pattern = br''
 
     def __init__(self, value=None):
         if value is None:
@@ -13,8 +13,11 @@ class QueryField(object):
         else:
             self.value = value
 
+    def __bytes__(self):
+        return bytes(self.encode())
+
     def __str__(self):
-        return str(self.encode())
+        return bytes(self).encode('utf8')
 
     def encode(self):
         return self.value
@@ -25,36 +28,36 @@ class QueryField(object):
 
 class ShortHex(QueryField):
     default = 0
-    pattern = r'[0-9a-f][0-9a-f]\.[0-9a-f][0-9a-f]'
+    pattern = br'[0-9a-f][0-9a-f]\.[0-9a-f][0-9a-f]'
 
     def encode(self):
         high = (self.value >> 8) & 0xff
         low = self.value & 0xff
-        return '%02x.%02x' % (high, low)
+        return b'%02x.%02x' % (high, low)
 
     def decode(self):
-        hex_ = str(self.value).replace('.', '')
+        hex_ = bytes(self.value).replace(b'.', b'')
         return int(hex_, 16)
 
 
 class ShortDecimal(QueryField):
     default = 0
-    pattern = r'[0-9]+\.[0-9]+'
+    pattern = br'[0-9]+\.[0-9]+'
 
     def encode(self):
         high = (self.value >> 8) & 0xff
         low = self.value & 0xff
-        return '%d.%d' % (high, low)
+        return b'%d.%d' % (high, low)
 
     def decode(self):
-        decimal = str(self.value).split('.')
+        decimal = bytes(self.value).split(b'.')
         high = int(decimal[0]) << 8
         low = int(decimal[1])
         return high | low
 
 
 class DomainString(QueryField):
-    pattern = r'[a-zA-Z0-9\-_]+(?:\.[a-zA-Z0-9\-_]+)*'
+    pattern = br'[a-zA-Z0-9\-_]+(?:\.[a-zA-Z0-9\-_]+)*'
 
 
 class ID(ShortHex):
@@ -99,8 +102,8 @@ class Padding(DomainString):
             padding.append(''.join(row))
         res = '.'.join(padding)[:self.value]
         if res[-1:] == '.':
-            return '%s.%s' % (res[:-2], res[-2])
-        return res
+            res = '%s.%s' % (res[:-2], res[-2])
+        return res.encode('utf8')
 
     def decode(self):
         return len(self.value)

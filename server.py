@@ -1,24 +1,17 @@
 #!/usr/bin/env python3
 
 import time
-from queue import Queue
-from scapy.all import DNS, DNSRR
 from lib.tuntap import TunThread
 from lib import dns
 from lib import query
-from lib.packet import Packet
+from lib.packet import Packet, PacketPool
 
-hostname = 'vpn.bgpat.net'
+hostname = b'vpn.bgpat.net'
+query.Field.HostName.default = hostname
+Packet.hostname = hostname
 
-
-class PacketPool(Queue, dict):
-
-    def Nop(self):
-        return None
-
-
-rxpool = PacketPool()
 txpool = PacketPool()
+rxpool = PacketPool()
 
 
 class VPNServer(TunThread):
@@ -29,7 +22,7 @@ class VPNServer(TunThread):
 
     def receive(self, data):
         global rxpool
-        pkt = Packet(data, hostname=hostname)
+        pkt = Packet(data)
         rxpool.put(pkt)
 
 
@@ -40,75 +33,64 @@ tun.start()
 class DNSServer(dns.ServerThread):
     daemon = True
 
-    def receive(self, req, addr, port):
-        global rxpool, txpool
-        qname = req.qd.qname.decode('utf8')
-        # print(qname)
-        ini = query.TxInitialize(qname, hostname=hostname)
-        params = ini.decode()
-        if params is not None:
-            print('tx initialize', params)
-            txpool[params['id']] = Packet(params['count'])
-            rdata = query.Ok(count=params['count'], sequence=params['count'])
-            ans = DNSRR(rrname=req.qd.qname, ttl=1, rdata=bytes(rdata), type=1)
-            res = DNS(id=req.id, qr=1, qd=req.qd, an=ans)
-            return res
-        send = query.TxSend(qname, hostname=hostname)
-        params = send.decode()
-        if params is not None:
-            print('tx send', params, txpool)
-            pkt = txpool[params['id']]
-            pkt[params['sequence']] = params['data']
-            remain = pkt.count - len(pkt)
-            # print('remain', remain)
-            if not remain:
-                tun.send(pkt.unpack())
-                del txpool[params['id']]
-            rdata = query.Ok(count=remain, sequence=params['sequence'])
-            ans = DNSRR(rrname=req.qd.qname, ttl=1, rdata=bytes(rdata), type=1)
-            res = DNS(id=req.id, qr=1, qd=req.qd, an=ans)
-            return res
-        recv = query.Receive(qname, hostname=hostname)
-        params = recv.decode()
-        if params is not None:
-            print('recv', params, rxpool)
-            if params is not None:
-                pkt = rxpool[params['id']]
-                if params['sequence'] in pkt:
-                    del pkt[params['sequence']]
-                seq = list(pkt.keys())
-                # print('recv seq', seq)
-                if len(seq) == 0:
-                    del rxpool[params['id']]
-                    rdata = query.Error()
-                    rtype = 1
-                else:
-                    seq = seq[0]
-                    rdata = query.RxSend(data=pkt[seq], sequence=seq, id=pkt.id, hostname=hostname)
-                    rtype = 5
-                ans = DNSRR(rrname=req.qd.qname, ttl=1, rdata=bytes(rdata), type=rtype)
-                res = DNS(id=req.id, qr=1, qd=req.qd, an=ans)
-                return res
-        poll = query.Polling(qname, hostname=hostname)
-        params = poll.decode()
-        if params is not None:
-            if rxpool.empty():
-                rdata = query.Error()
-                rtype = 1
-            else:
-                pkt = rxpool.get()
-                if not pkt.id in rxpool:
-                    rdata = query.Error()
-                    rtype = 1
-                rxpool[pkt.id] = pkt
-                rdata = query.RxInitialize(data=pkt[0], count=pkt.count, id=pkt.id, hostname=hostname)
-                rxpool.task_done()
-                rtype = 5
-                print('rx init', rdata)
-            print(rdata, rtype)
-            ans = DNSRR(rrname=req.qd.qname, ttl=1, rdata=bytes(rdata), type=rtype)
-            res = DNS(id=req.id, qr=1, qd=req.qd, an=ans)
-            return res
+    def receive(self, req, addr, port, data):
+        txInit = query.TxInitialize(req)
+        txSend = query.TxSend(req)
+        rxRecv = query.Receive(req)
+        rxPoll = query.Polling(req)
+        if txInit is not None:
+            res = self.txinit(txInit['id'], txInit['count'])
+        elif txSend is not None:
+            res = self.txsend(txSend['id'], txSend['sequence'], txSend['data'])
+        elif rxRecv is not None:
+            res = self.rxrecv(rxRecv['id'], rxRecv['sequence'])
+        elif rxPoll is not None:
+            res = self.rxpoll()
+        else:
+            res = query.Error()
+        return {
+            'value': bytes(res),
+            'type': res.type,
+        }
+
+    def txinit(self, id, count):
+        global txpool
+        txpool[id] = Packet(count)
+        return query.Ok(count=count, sequence=count)
+
+    def txsend(self, id, seq, data):
+        global txpool
+        pkt = txpool[id]
+        pkt[seq] = data
+        remain = pkt.count - len(pkt)
+        if not remain:
+            tun.send(pkt.unpack())
+            del txpool[id]
+        return query.Ok(count=remain, sequence=seq)
+
+    def rxrecv(self, id, seq):
+        global rxpool
+        pkt = rxpool[id]
+        if seq in pkt:
+            del pkt[seq]
+        keys = list(pkt.keys())
+        if len(keys):
+            i = keys[0]
+            return query.RxSend(data=pkt[i], sequence=i, id=id)
+        else:
+            del rxpool[id]
+            return query.Error()
+
+    def rxpoll(self):
+        global rxpool
+        if rxpool.empty():
+            return query.Error()
+        pkt = rxpool.front()
+        if pkt.id in rxpool:
+            return query.Error()
+        rxpool[pkt.id] = pkt
+        rxpool.pop()
+        return query.RxInitialize(data=pkt[0], count=pkt.count, id=pkt.id)
 
 
 dnsd = DNSServer()

@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 
 import time
-from scapy.all import ls
 from lib.tuntap import TunThread
 from lib import dns
 from lib import query
-from lib.packet import Packet
+from lib.packet import Packet, PacketPool
 
-# addr = '192.168.33.10'
-# addr = '8.8.8.8'
-# addr = '27.120.111.8'
-addr = '160.252.88.2'
-hostname = 'vpn.bgpat.net'
+addr = '127.0.0.1'
+hostname = b'vpn.bgpat.net'
+query.Field.HostName.default = hostname
+Packet.hostname = hostname
 
-dns.Client.ext = True
+txpool = PacketPool()
+rxpool = PacketPool()
 
 
 class VPNClient(TunThread):
@@ -23,81 +22,77 @@ class VPNClient(TunThread):
     gateway = '192.168.200.1'
 
     def receive(self, data):
-        pkt = Packet(data, hostname=hostname)
-        # print(pkt)
-        ini = query.TxInitialize(
-            hostname=hostname,
-            id=pkt.id,
-            count=pkt.count
-        )
-        print('initialize', ini, ini.__dict__)
-        client = dns.Client(addr=addr, type='A', data={'value': bytes(ini)})
+        pkt = Packet(data)
+        init = query.TxInitialize(id=pkt.id, count=pkt.count)
+        client = dns.Client(addr=addr, data={
+            'value': bytes(init),
+            'type': init.type,
+        })
+        if client.answers is None:
+            raise 'no answer'
         while len(pkt):
-            rdata = client.response.an.rdata
-            if isinstance(rdata, bytes):
-                rdata = rdata.decode('utf8')
-            if query.Error(rdata).decode() is not None:
-                return
-            res = query.Ok(rdata).decode()
-            if res['count'] != res['sequence']:
-                del pkt[res['sequence']]
-                if len(pkt) == 0:
-                    return
-            seq = list(pkt.keys())[0]
-            send = query.TxSend(data=pkt[seq], sequence=seq, id=pkt.id,
-                                hostname=hostname)
-            data = {
-                'value': bytes(send)
-            }
-            print('send', send, send.__dict__)
-            client = dns.Client(addr=addr, type='A', data=data)
+            for ans in client.answers:
+                ok = query.Ok(ans)
+                count = ok['count']
+                seq = ok['sequence']
+                if count != seq:
+                    del pkt[seq]
+                    if not len(pkt):
+                        return
+                i = list(pkt.keys())[0]
+                req = query.TxSend(data=pkt[i], sequence=seq, id=pkt.id)
+                data = {
+                    'value': bytes(req),
+                    'type': req.type
+                }
+                client = dns.Client(addr=addr, data=data)
 
 
 tun = VPNClient()
 tun.start()
-pool = {}
 
 
 while True:
-    poll = query.Polling(hostname=hostname, padding=252-len(hostname))
-    print(poll)
-    cl = dns.Client(addr=addr, type='A', data={'value': bytes(poll)})
-    try:
-        rdata = cl.response.an.rdata
-        if isinstance(rdata, bytes):
-            rdata = rdata.decode('utf8')
-    except:
-        print('except: ')
-        ls(cl.response)
+    time.sleep(0.5)
+    req = query.Polling(padding=16)
+    client = dns.Client(addr=addr, data={
+        'value': bytes(req),
+        'type': req.type,
+    })
+    if client.answers is None:
+        raise 'no answer'
         continue
-    print('rdata', rdata)
-    if query.Error(cl.response.an.rdata).decode() is not None:
-        print('noop')
-        time.sleep(0.5)
-        continue
+    for ans in client.answers:
+        err = query.Error(ans)
+        if err is not None:
+            continue
     while True:
-        params = query.RxInitialize(rdata, hostname=hostname).decode()
-        print('recv', rdata, pool)
-        if params is not None and params['id'] not in pool:
-            pkt = Packet(params['count'])
-            id = params['id']
-            pool[id] = pkt
-            seq = 0
-        else:
-            params = query.RxSend(rdata, hostname=hostname).decode()
-            print('rx send', params, rdata)
-            id = params['id']
-            pkt = pool[id]
-            seq = params['sequence']
-        pkt[seq] = params['data']
-        print('recv pkt', pkt.__dict__, len(pkt), pkt)
-        if len(pkt) == pkt.count:
-            # ls(IP(pkt.unpack()))
-            tun.send(pkt.unpack())
-            del pool[id]
-            break
-        recv = query.Receive(hostname=hostname, sequence=seq, id=id, padding=10)
-        cl = dns.Client(addr=addr, type='A', data={'value': bytes(recv)})
-        rdata = cl.response.an.rdata
-        if isinstance(rdata, bytes):
-            rdata = rdata.decode('utf8')
+        for ans in client.answers:
+            rxInit = query.RxInitialize(ans)
+            rxSend = query.RxSend(ans)
+            if rxInit is not None:
+                count = rxInit['count']
+                id = rxInit['id']
+                pkt = Packet(count)
+                rxpool[id] = pkt
+                seq = 0
+                data = rxInit['data']
+            elif rxSend is not None:
+                id = rxSend['id']
+                seq = rxSend['sequence']
+                if id not in rxpool:
+                    raise 'packet is not found'
+                pkt = rxpool[id]
+                data = rxSend['data']
+            else:
+                break
+            pkt[seq] = data
+            if len(pkt) == pkt.count:
+                tun.send(pkt.unpack())
+                del rxpool[id]
+                break
+        req = query.Receive(sequence=seq, id=id, padding=16)
+        client = dns.Client(addr=addr, data={
+            'value': bytes(req),
+            'type': req.type,
+        })
