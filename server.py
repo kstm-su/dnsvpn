@@ -74,7 +74,7 @@ class DNSServer(dns.ServerThread):
         if not remain:
             tun.send(pkt.unpack())
             del txpool[id]
-        return query.Ok(count=count, sequence=seq)
+        return query.Ok(count=remain, sequence=seq)
 
     def rxrecv(self, id, seq):
         global rxpool
