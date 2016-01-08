@@ -53,8 +53,39 @@ class TxConnection(Connection):
         self.receive(client)
 
 
+class RxConnection(Connection):
+
+    def main(self):
+        self.send(0)
+
+    def receive(self, client):
+        global rxpool
+        seq = None
+        print('rxsend', client.answers)
+        for ans in client.answers:
+            rxSend = query.RxSend(ans)
+            if rxSend.params is not None:
+                seq = rxSend.params['sequence']
+                self.data[seq] = rxSend.params['data']
+        else:
+            raise Exception('No answers')
+        self.send(seq)
+
+    def send(self, seq):
+        global tun
+        if len(self.data) >= self.data.count:
+            tun.send(self.data.unpack())
+            return
+        req = query.Receive(sequence=seq, id=self.data.id, padding=16)
+        client = dns.Client(addr=addr, data={
+            'value': bytes(req),
+            'type': req.type,
+        })
+        self.receive(client)
+
+
 txconn = ConnectionPool(TxConnection)
-# rxconn = ConnectionPool(RxConnection)
+rxconn = ConnectionPool(RxConnection)
 
 
 class VPNClient(TunThread):
@@ -80,13 +111,20 @@ while True:
         'value': bytes(req),
         'type': req.type,
     })
-    if client.answers is None:
-        raise 'no answer'
-        continue
     for ans in client.answers:
-        err = query.Error(ans)
-        if err is not None:
+        init = query.RxInitialize(ans)
+        if init.params is None:
             continue
+        print('rxinit', init.params)
+        pkt = Packet(init.params['count'])
+        pkt.id = init.params['id']
+        pkt[0] = init.params['data']
+        rxconn.push(pkt)
+    else:
+        # raise 'no answer'
+        continue
+    continue
+
     while True:
         # for ans in client.answers:
         ans = client.answers[0]
