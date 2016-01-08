@@ -10,14 +10,14 @@ class Connection(Thread):
         self.pool = pool
 
     def run(self):
-        self.thread()
+        self.main()
         self.end()
 
     def end(self):
         del self.pool[self.ident]
         self.pool.next()
 
-    def thread(self):
+    def main(self):
         return
 
 
@@ -29,9 +29,9 @@ class ConnectionPool(dict):
         self.queue = Queue()
         self.Conn = Conn
 
-    def push(self, params=None):
+    def push(self, data=None):
         conn = self.Conn(self)
-        conn.params = params
+        conn.data = data
         self.queue.put(conn)
         if len(self) < self.max:
             self.next()
