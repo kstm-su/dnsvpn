@@ -67,7 +67,7 @@ class RxConnection(Connection):
             if rxSend.params is not None:
                 seq = rxSend.params['sequence']
                 self.data[seq] = rxSend.params['data']
-        else:
+        if seq is None:
             raise Exception('No answers')
         self.send(seq)
 
@@ -120,43 +120,3 @@ while True:
         pkt.id = init.params['id']
         pkt[0] = init.params['data']
         rxconn.push(pkt)
-    else:
-        # raise 'no answer'
-        continue
-    continue
-
-    while True:
-        # for ans in client.answers:
-        ans = client.answers[0]
-        rxInit = query.RxInitialize(ans)
-        rxSend = query.RxSend(ans)
-        if rxInit.params is not None and id not in rxpool:
-            count = rxInit.params['count']
-            id = rxInit.params['id']
-            pkt = Packet(count)
-            rxpool[id] = pkt
-            seq = 0
-            data = rxInit.params['data']
-            print('rxinit', pkt.count, len(pkt))
-        elif rxSend.params is not None:
-            print('rxsend', pkt.count, len(pkt))
-            id = rxSend.params['id']
-            seq = rxSend.params['sequence']
-            if id not in rxpool:
-                break
-                # raise 'packet is not found'
-            pkt = rxpool[id]
-            data = rxSend.params['data']
-        else:
-            break
-        pkt[seq] = data
-        if len(pkt) == pkt.count:
-            tun.send(pkt.unpack())
-            del rxpool[id]
-            break
-        req = query.Receive(sequence=seq, id=id, padding=16)
-        print('recv', req)
-        client = dns.Client(addr=addr, data={
-            'value': bytes(req),
-            'type': req.type,
-        })
