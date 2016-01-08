@@ -87,7 +87,7 @@ class DNSServer(dns.ServerThread):
             return query.RxSend(data=pkt[i], sequence=i, id=id)
         else:
             del rxpool[id]
-            return self.rxpoll()
+            return query.Error()
 
     def rxpoll(self):
         global rxpool
