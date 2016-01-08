@@ -5,8 +5,8 @@ from lib.tuntap import TunThread
 from lib import dns
 from lib import query
 from lib.packet import Packet, PacketPool
+from lib.connection import Connection, ConnectionPool
 
-# addr = '127.0.0.1'
 addr = '192.168.33.10'
 hostname = b'vpn.bgpat.net'
 query.Field.HostName.default = hostname
@@ -17,6 +17,46 @@ txpool = PacketPool()
 rxpool = PacketPool()
 
 
+class TxConnection(Connection):
+
+    def main(self):
+        init = query.TxInitialize(id=self.data.id, count=self.data.count)
+        req = {
+            'value': bytes(init),
+            'type': init.type,
+        }
+        client = dns.Client(addr=addr, data=req)
+        self.receive(client)
+
+    def receive(self, client):
+        if not len(client.answers):
+            raise Exception('No answers')
+        for ans in client.answers:
+            ok = query.Ok(ans)
+            if ok.params is None:
+                continue
+            count = ok.params['count']
+            seq = ok.params['sequence']
+            if seq < count:  # データ送信完了
+                del self.data[seq]
+                if not len(self.data):  # 全データ送信完了
+                    return
+        self.send()
+
+    def send(self):
+        i = list(self.data.keys())[0]
+        req = query.TxSend(data=self.data[i], sequence=i, id=self.data.id)
+        client = dns.Client(addr=addr, data={
+            'value': bytes(req),
+            'type': req.type,
+        })
+        self.receive(client)
+
+
+txconn = ConnectionPool(TxConnection)
+# rxconn = ConnectionPool(RxConnection)
+
+
 class VPNClient(TunThread):
     daemon = True
     name = 'tun0'
@@ -24,36 +64,9 @@ class VPNClient(TunThread):
     gateway = '192.168.200.1'
 
     def receive(self, data):
+        global txpool
         pkt = Packet(data)
-        init = query.TxInitialize(id=pkt.id, count=pkt.count)
-        client = dns.Client(addr=addr, data={
-            'value': bytes(init),
-            'type': init.type,
-        })
-        if client.answers is None:
-            raise 'no answer'
-        while len(pkt):
-            # for ans in client.answers:
-            if not len(client.answers):
-                return
-            ans = client.answers[0]
-            ok = query.Ok(ans)
-            if ok.params is None:
-                return
-            count = ok.params['count']
-            seq = ok.params['sequence']
-            if seq < count:
-                print('count = %d, seq = %d' % (count, seq), pkt)
-                del pkt[seq]
-                if not len(pkt):
-                    return
-            i = list(pkt.keys())[0]
-            req = query.TxSend(data=pkt[i], sequence=i, id=pkt.id)
-            data = {
-                'value': bytes(req),
-                'type': req.type
-            }
-            client = dns.Client(addr=addr, data=data)
+        txconn.push(pkt)
 
 
 tun = VPNClient()
