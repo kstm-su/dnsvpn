@@ -79,12 +79,12 @@ class Polling(Query):
 
 
 class RxInitialize(Query):
-    fields = (Field.HexCount, Field.ID, Field.Data, Field.HostName, b'')
+    fields = (Field.HexCount, Field.ID, Field.Data, b'')
     type = 'CNAME'
 
 
 class RxSend(Query):
-    fields = (Field.HexSequence, Field.ID, Field.Data, Field.HostName, b'')
+    fields = (Field.HexSequence, Field.ID, Field.Data, b'')
     type = 'CNAME'
 
 
