@@ -50,12 +50,13 @@ class DNSServer(dns.ServerThread):
         elif rxRecv.params is not None:
             params = rxRecv.params
             res = self.rxrecv(params['id'], params['sequence'])
-            print('rxrecv', params)
+            print('rxrecv', params, req)
         elif rxPoll.params is not None:
             res = self.rxpoll()
             print('rxpoll')
         else:
             res = query.Error()
+        print('< ', res.__class__.__name__, res.params)
         return {
             'value': bytes(res),
             'type': res.type,
@@ -78,6 +79,10 @@ class DNSServer(dns.ServerThread):
 
     def rxrecv(self, id, seq):
         global rxpool
+        if id not in rxpool:
+            print('recv error', id, seq)
+            print('rxpool', list(rxpool.keys()))
+            return query.Error()
         pkt = rxpool[id]
         if seq in pkt:
             del pkt[seq]
