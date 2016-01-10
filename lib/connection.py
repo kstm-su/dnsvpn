@@ -10,7 +10,10 @@ class Connection(Thread):
         self.pool = pool
 
     def run(self):
-        self.main()
+        try:
+            self.main()
+        except:
+            print('Connection error', self.data)
         self.end()
 
     def end(self):

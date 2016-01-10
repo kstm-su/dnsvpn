@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import time
+import socket
 from lib.tuntap import TunThread
 from lib import dns
 from lib import query
@@ -8,6 +9,7 @@ from lib.packet import Packet, PacketPool
 from lib.connection import Connection, ConnectionPool
 
 addr = '192.168.33.10'
+addr = '27.120.111.8'
 hostname = b'vpn.bgpat.net'
 query.Field.HostName.default = hostname
 query.Field.HostName.pattern = hostname
@@ -61,10 +63,10 @@ class RxConnection(Connection):
     def receive(self, client):
         global rxpool
         seq = None
-        print('rxsend', client.answers)
         for ans in client.answers:
             rxSend = query.RxSend(ans)
             if rxSend.params is not None:
+                print('rxsend', rxSend.params)
                 seq = rxSend.params['sequence']
                 self.data[seq] = rxSend.params['data']
         if seq is None:
@@ -73,15 +75,15 @@ class RxConnection(Connection):
 
     def send(self, seq):
         global tun
+        req = query.Receive(sequence=seq, id=self.data.id, padding=16)
         if len(self.data) >= self.data.count:
             tun.send(self.data.unpack())
-            return
-        req = query.Receive(sequence=seq, id=self.data.id, padding=16)
         client = dns.Client(addr=addr, data={
             'value': bytes(req),
             'type': req.type,
         })
-        self.receive(client)
+        if len(self.data) < self.data.count:
+            self.receive(client)
 
 
 txconn = ConnectionPool(TxConnection)
@@ -98,6 +100,7 @@ class VPNClient(TunThread):
         global txpool
         pkt = Packet(data)
         txconn.push(pkt)
+        print('tx work:%d queue:%d' % (len(txconn), txconn.queue.qsize()))
 
 
 tun = VPNClient()
@@ -105,18 +108,22 @@ tun.start()
 
 
 while True:
-    time.sleep(0.5)
     req = query.Polling(padding=16)
-    client = dns.Client(addr=addr, data={
-        'value': bytes(req),
-        'type': req.type,
-    })
+    try:
+        client = dns.Client(addr=addr, data={
+            'value': bytes(req),
+            'type': req.type,
+        })
+    except socket.timeout:
+        continue
     for ans in client.answers:
         init = query.RxInitialize(ans)
         if init.params is None:
+            time.sleep(0.5)
             continue
         print('rxinit', init.params)
         pkt = Packet(init.params['count'])
         pkt.id = init.params['id']
         pkt[0] = init.params['data']
         rxconn.push(pkt)
+        print('rx work:%d queue:%d' % (len(rxconn), rxconn.queue.qsize()))

@@ -104,6 +104,7 @@ class Client(object):
 
     def __init__(self, **kwargs):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.settimeout(3)
         self.addr = kwargs.get('addr', self.addr)
         self.port = kwargs.get('port', self.port)
         self.size = kwargs.get('size', self.size)
