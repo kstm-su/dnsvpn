@@ -5,18 +5,14 @@ import socket
 from lib.tuntap import TunThread
 from lib import dns
 from lib import query
-from lib.packet import Packet, PacketPool
+from lib.packet import Packet
 from lib.connection import Connection, ConnectionPool
 
 addr = '192.168.33.10'
-addr = '27.120.111.8'
 hostname = b'vpn.bgpat.net'
 query.Field.HostName.default = hostname
 query.Field.HostName.pattern = hostname
 Packet.hostname = hostname
-
-txpool = PacketPool()
-rxpool = PacketPool()
 
 
 class TxConnection(Connection):
@@ -61,7 +57,6 @@ class RxConnection(Connection):
         self.send(0)
 
     def receive(self, client):
-        global rxpool
         seq = None
         for ans in client.answers:
             rxSend = query.RxSend(ans)
@@ -97,7 +92,6 @@ class VPNClient(TunThread):
     gateway = '192.168.200.1'
 
     def receive(self, data):
-        global txpool
         pkt = Packet(data)
         txconn.push(pkt)
         print('tx work:%d queue:%d' % (len(txconn), txconn.queue.qsize()))
