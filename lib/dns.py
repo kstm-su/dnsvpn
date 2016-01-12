@@ -77,7 +77,7 @@ class ServerThread(threading.Thread):
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.bind((self.addr, self.port))
             self.sock.listen(self.backlog)
-        self.sock.settimeout(self.timeout)
+        # self.sock.settimeout(self.timeout)
 
     def run(self):
         while True:
@@ -85,7 +85,7 @@ class ServerThread(threading.Thread):
                 data, client = self.sock.recvfrom(self.size)
             if self.protocol == 'TCP':
                 conn, client = self.sock.accept()
-                data = self.sock.recv(self.size)
+                data = conn.recv(self.size)
             request = DNS(data)
             try:
                 qname = request.qd.qname
