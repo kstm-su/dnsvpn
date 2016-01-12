@@ -74,10 +74,9 @@ class ServerThread(threading.Thread):
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.sock.bind((self.addr, self.port))
         elif self.protocol == 'TCP':
-            self.socl = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.bind((self.addr, self.port))
             self.sock.listen(self.backlog)
-        self.sock.bind((self.addr, self.port))
         self.sock.settimeout(self.timeout)
 
     def run(self):
