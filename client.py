@@ -13,6 +13,7 @@ hostname = b'vpn.bgpat.net'
 query.Field.HostName.default = hostname
 query.Field.HostName.pattern = hostname
 Packet.hostname = hostname
+dns.Client.protocol = 'UDP'
 
 
 class TxConnection(Connection):

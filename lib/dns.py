@@ -64,15 +64,29 @@ class ServerThread(threading.Thread):
     addr = '0.0.0.0'
     port = 53
     size = 4096
+    protocol = 'UDP'
+    timeout = 3
+    backlog = 10
 
     def __init__(self):
         threading.Thread.__init__(self)
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        if self.protocol == 'UDP':
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.sock.bind((self.addr, self.port))
+        elif self.protocol == 'TCP':
+            self.socl = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.bind((self.addr, self.port))
+            self.sock.listen(self.backlog)
         self.sock.bind((self.addr, self.port))
+        self.sock.settimeout(self.timeout)
 
     def run(self):
         while True:
-            data, client = self.sock.recvfrom(self.size)
+            if self.protocol == 'UDP':
+                data, client = self.sock.recvfrom(self.size)
+            if self.protocol == 'TCP':
+                conn, client = self.sock.accept()
+                data = self.sock.recv(self.size)
             request = DNS(data)
             try:
                 qname = request.qd.qname
@@ -81,7 +95,11 @@ class ServerThread(threading.Thread):
             response = self.receive(qname, client[0], client[1], request)
             if not isinstance(response, DNS):
                 response = self.makeResponse(request, **response)
-            self.sock.sendto(bytes(response), client)
+            if self.protocol == 'UDP':
+                self.sock.sendto(bytes(response), client)
+            if self.protocol == 'TCP':
+                conn.send(bytes(response))
+                conn.close()
 
     def receive(self, req, addr, port, data):
         return {}
@@ -100,15 +118,24 @@ class Client(object):
     addr = None
     port = 53
     size = 4096
+    protocol = 'UDP'
+    timeout = 3
     edns0 = False
 
     def __init__(self, **kwargs):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.settimeout(3)
         self.addr = kwargs.get('addr', self.addr)
         self.port = kwargs.get('port', self.port)
         self.size = kwargs.get('size', self.size)
+        self.protocol = kwargs.get('protocol', self.protocol)
+        self.timeout = kwargs.get('timeout', self.timeout)
         self.edns0 = kwargs.get('edns0', self.edns0)
+        if self.protocol == 'UDP':
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        elif self.protocol == 'TCP':
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        else:
+            raise Exception('Not supported')
+        self.sock.settimeout(self.timeout)
         if 'data' in kwargs:
             data = kwargs['data']
             if isinstance(data, DNS):
@@ -118,8 +145,17 @@ class Client(object):
             self.send()
 
     def send(self):
-        self.sock.sendto(bytes(self.data), (self.addr, self.port))
+        if self.protocol == 'UDP':
+            self.sock.sendto(bytes(self.data), (self.addr, self.port))
+        elif self.protocol == 'TCP':
+            self.sock.connect((self.addr, self.port))
+            self.sock.send(bytes(self.data))
+        else:
+            raise Exception('Not supported')
+        # TODO バッファ不足時のループ書く
         res = self.sock.recv(self.size)
+        if self.protocol == 'TCP':
+            self.sock.close()
         self.response = DNS(res)
         self.answers = []
         x = self.response.an
