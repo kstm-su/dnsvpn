@@ -168,7 +168,7 @@ class Client(object):
 
     def makeRequest(self, **kwargs):
         id = kwargs.get('id', self.generateID())
-        qname = kwargs.get('value', u'')
+        qname = kwargs.get('value', b'')
         qtype = kwargs.get('type', 1)
         if isinstance(qtype, str):
             qtype = TYPE[qtype]
