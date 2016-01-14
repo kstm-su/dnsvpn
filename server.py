@@ -39,23 +39,28 @@ class DNSServer(dns.ServerThread):
         txSend = query.TxSend(req)
         rxRecv = query.Receive(req)
         rxPoll = query.Polling(req)
-        if txInit.params is not None:
-            params = txInit.params
-            res = self.txinit(params['id'], params['count'])
-            print('txinit', params)
-        elif txSend.params is not None:
-            params = txSend.params
-            res = self.txsend(params['id'], params['sequence'], params['data'])
-            print('txsend', params)
-        elif rxRecv.params is not None:
-            params = rxRecv.params
-            res = self.rxrecv(params['id'], params['sequence'])
-            print('rxrecv', params, req)
-        elif rxPoll.params is not None:
-            res = self.rxpoll()
-            print('rxpoll')
-        else:
+        try:
+            if txInit.params is not None:
+                params = txInit.params
+                res = self.txinit(params['id'], params['count'])
+                print('txinit', params)
+            elif txSend.params is not None:
+                id = txSend.params['id']
+                seq = txSend.params['sequence']
+                res = self.txsend(id, seq, txSend.params['data'])
+                print('txsend', params)
+            elif rxRecv.params is not None:
+                params = rxRecv.params
+                res = self.rxrecv(params['id'], params['sequence'])
+                print('rxrecv', params, req)
+            elif rxPoll.params is not None:
+                res = self.rxpoll()
+                print('rxpoll')
+            else:
+                res = query.Error()
+        except:
             res = query.Error()
+            print('exception', req, addr, port, data.qd.__dict__)
         print('< ', res.__class__.__name__, res.params)
         return {
             'value': bytes(res),
