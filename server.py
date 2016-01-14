@@ -32,6 +32,7 @@ tun.start()
 
 
 class DNSServer(dns.ServerThread):
+    addr = '0.0.0.0'
     daemon = True
 
     def receive(self, req, addr, port, data):
