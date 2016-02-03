@@ -49,7 +49,7 @@ class DNSServer(dns.ServerThread):
                 id = txSend.params['id']
                 seq = txSend.params['sequence']
                 res = self.txsend(id, seq, txSend.params['data'])
-                print('txsend', params)
+                print('txsend', id, seq)
             elif rxRecv.params is not None:
                 params = rxRecv.params
                 res = self.rxrecv(params['id'], params['sequence'])
