@@ -7,8 +7,9 @@ from lib import dns
 from lib import query
 from lib.packet import Packet
 from lib.connection import Connection, ConnectionPool
+from lib.resolv import get_resolv_conf
 
-addr = '192.168.33.10'
+addr = get_resolv_conf()['nameserver'][0]
 hostname = b'vpn.bgpat.net'
 query.Field.HostName.default = hostname
 query.Field.HostName.pattern = hostname
